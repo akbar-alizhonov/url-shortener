@@ -67,3 +67,17 @@ func (h *UrlHandler) ListUrls(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, resp)
 }
+
+func (h *UrlHandler) Redirect(c *echo.Context) error {
+	id, err := echo.PathParam[int](c, "id")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	u, err := h.serv.Get(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.Redirect(http.StatusFound, u)
+}

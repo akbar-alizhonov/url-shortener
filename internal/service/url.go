@@ -12,6 +12,7 @@ import (
 type UrlService interface {
 	Save(ctx context.Context, urlToSave string, alias string) error
 	List(ctx context.Context) ([]url.Url, error)
+	Get(ctx context.Context, id int) (string, error)
 }
 
 type urlService struct {
@@ -29,10 +30,10 @@ func (s *urlService) Save(ctx context.Context, urlToSave string, alias string) e
 		err := s.repo.Save(ctx, urlToSave, alias)
 		if err != nil {
 			s.log.Error(
-				"failed to save url", urlToSave,
-				"alias", alias,
-				"err", err,
-				"request_id", logger.RequestIDFromContext(ctx),
+				"failed to save url", slog.String("url", urlToSave),
+				slog.String("alias", alias),
+				slog.String("err", err.Error()),
+				slog.String("request_id", logger.RequestIDFromContext(ctx)),
 			)
 			return err
 		}
@@ -49,9 +50,9 @@ func (s *urlService) Save(ctx context.Context, urlToSave string, alias string) e
 		}
 		s.log.Error(
 			"failed to save url", urlToSave,
-			"alias", alias,
-			"err", err,
-			"request_id", logger.RequestIDFromContext(ctx),
+			slog.String("alias", alias),
+			slog.String("err", err.Error()),
+			slog.String("request_id", logger.RequestIDFromContext(ctx)),
 		)
 		return err
 	}
@@ -66,4 +67,13 @@ func (s *urlService) List(ctx context.Context) ([]url.Url, error) {
 	}
 
 	return urls, nil
+}
+
+func (s *urlService) Get(ctx context.Context, id int) (string, error) {
+	u, err := s.repo.Get(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	return u.OriginalUrl, nil
 }

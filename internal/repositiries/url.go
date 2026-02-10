@@ -11,6 +11,7 @@ import (
 type UrlRepository interface {
 	Save(ctx context.Context, urlToSave string, alias string) error
 	List(ctx context.Context) ([]url.Url, error)
+	Get(ctx context.Context, id int) (url.Url, error)
 }
 
 type urlRepository struct {
@@ -68,4 +69,21 @@ func (r *urlRepository) List(ctx context.Context) ([]url.Url, error) {
 	}
 
 	return urls, nil
+}
+
+func (r *urlRepository) Get(ctx context.Context, id int) (url.Url, error) {
+	sql, args, err := sq.
+		Select("id", "original_url", "alias").From("url").
+		Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return url.Url{}, err
+	}
+
+	row := r.pool.QueryRow(ctx, sql, args...)
+	var u url.Url
+	if err := row.Scan(&u.Id, &u.OriginalUrl, &u.Alias); err != nil {
+		return url.Url{}, err
+	}
+
+	return u, nil
 }

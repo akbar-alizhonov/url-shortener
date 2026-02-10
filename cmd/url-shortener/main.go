@@ -43,6 +43,7 @@ func main() {
 	// routes
 	e.POST("/url", urlHandler.SaveUrl)
 	e.GET("/list", urlHandler.ListUrls)
+	e.GET("/url/:id", urlHandler.Redirect)
 
 	if err = e.Start(":8080"); err != nil {
 		log.Error("failed to start server", err)
