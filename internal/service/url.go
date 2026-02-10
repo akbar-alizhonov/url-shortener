@@ -10,7 +10,8 @@ import (
 )
 
 type UrlService interface {
-	SaveUrl(ctx context.Context, urlToSave string, alias string) error
+	Save(ctx context.Context, urlToSave string, alias string) error
+	List(ctx context.Context) ([]url.Url, error)
 }
 
 type urlService struct {
@@ -23,7 +24,7 @@ func NewUrlService(repo repositiries.UrlRepository, generator AliasGenerator, lo
 	return &urlService{repo: repo, generator: generator, log: logger}
 }
 
-func (s *urlService) SaveUrl(ctx context.Context, urlToSave string, alias string) error {
+func (s *urlService) Save(ctx context.Context, urlToSave string, alias string) error {
 	if alias != "" {
 		err := s.repo.Save(ctx, urlToSave, alias)
 		if err != nil {
@@ -56,4 +57,13 @@ func (s *urlService) SaveUrl(ctx context.Context, urlToSave string, alias string
 	}
 
 	return nil
+}
+
+func (s *urlService) List(ctx context.Context) ([]url.Url, error) {
+	urls, err := s.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return urls, nil
 }

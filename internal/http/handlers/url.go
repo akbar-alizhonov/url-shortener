@@ -18,6 +18,12 @@ type urlSaveRequest struct {
 	Alias string `json:"alias"`
 }
 
+type listUrlsResponse struct {
+	Id          int    `json:"id"`
+	OriginalUrl string `json:"original_url"`
+	Alias       string `json:"alias"`
+}
+
 func NewUrlHandler(serv service.UrlService) *UrlHandler {
 	return &UrlHandler{serv: serv}
 }
@@ -28,7 +34,7 @@ func (h *UrlHandler) SaveUrl(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	err := h.serv.SaveUrl(c.Request().Context(), req.Url, req.Alias)
+	err := h.serv.Save(c.Request().Context(), req.Url, req.Alias)
 	if err != nil {
 		switch {
 		case errors.Is(err, url.ErrAliasTaken):
@@ -42,4 +48,22 @@ func (h *UrlHandler) SaveUrl(c *echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusCreated)
+}
+
+func (h *UrlHandler) ListUrls(c *echo.Context) error {
+	urls, err := h.serv.List(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	resp := make([]listUrlsResponse, len(urls))
+	for idx, u := range urls {
+		resp[idx] = listUrlsResponse{
+			Id:          u.Id,
+			OriginalUrl: u.OriginalUrl,
+			Alias:       u.Alias,
+		}
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }

@@ -10,6 +10,7 @@ import (
 
 type UrlRepository interface {
 	Save(ctx context.Context, urlToSave string, alias string) error
+	List(ctx context.Context) ([]url.Url, error)
 }
 
 type urlRepository struct {
@@ -37,4 +38,34 @@ func (r *urlRepository) Save(ctx context.Context, urlToSave string, alias string
 	}
 
 	return nil
+}
+
+func (r *urlRepository) List(ctx context.Context) ([]url.Url, error) {
+	sql, args, err := sq.
+		Select("id", "original_url", "alias").From("url").
+		OrderBy("created_at").PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var urls []url.Url
+	for rows.Next() {
+		var u url.Url
+		if err := rows.Scan(&u.Id, &u.OriginalUrl, &u.Alias); err != nil {
+			return nil, err
+		}
+		urls = append(urls, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return urls, nil
 }

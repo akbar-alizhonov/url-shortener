@@ -28,16 +28,21 @@ func main() {
 	repo := repositiries.NewUrlRepository(pool)
 	generator := service.NewAliasGenerator()
 	serv := service.NewUrlService(repo, generator, log)
+	urlHandler := handlers.NewUrlHandler(serv)
+
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// echo
 	e := echo.New()
 	e.Use(middleware.RequestID())
 	e.Use(middlewares.RequestContext)
 	e.Use(middlewares.RequestLogger(log))
 	e.Use(middleware.Recover())
-	urlHandler := handlers.NewUrlHandler(serv)
+
+	// routes
 	e.POST("/url", urlHandler.SaveUrl)
+	e.GET("/list", urlHandler.ListUrls)
 
 	if err = e.Start(":8080"); err != nil {
 		log.Error("failed to start server", err)
