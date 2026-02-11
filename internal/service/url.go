@@ -12,7 +12,7 @@ import (
 type UrlService interface {
 	Save(ctx context.Context, urlToSave string, alias string) error
 	List(ctx context.Context) ([]url.Url, error)
-	Get(ctx context.Context, id int) (string, error)
+	Get(ctx context.Context, id int) (url.Url, error)
 }
 
 type urlService struct {
@@ -69,11 +69,11 @@ func (s *urlService) List(ctx context.Context) ([]url.Url, error) {
 	return urls, nil
 }
 
-func (s *urlService) Get(ctx context.Context, id int) (string, error) {
+func (s *urlService) Get(ctx context.Context, id int) (url.Url, error) {
 	u, err := s.repo.Get(ctx, id)
 	if err != nil {
-		return "", err
+		return url.Url{}, err
 	}
 
-	return u.OriginalUrl, nil
+	return u, nil
 }

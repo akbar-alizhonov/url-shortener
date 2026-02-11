@@ -79,5 +79,5 @@ func (h *UrlHandler) Redirect(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.Redirect(http.StatusFound, u)
+	return c.Redirect(http.StatusFound, u.OriginalUrl)
 }
