@@ -7,27 +7,41 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 )
 
 type UrlService interface {
-	Save(ctx context.Context, urlToSave string, alias string) error
+	Save(ctx context.Context, urlToSave, alias string) error
 	List(ctx context.Context) ([]url.Url, error)
 	Get(ctx context.Context, id int) (url.Url, error)
+	Update(ctx context.Context, id int, newUrl, alias string) error
 }
 
 type urlService struct {
 	repo      repositiries.UrlRepository
 	generator AliasGenerator
 	log       *slog.Logger
+	baseUrl   string
 }
 
-func NewUrlService(repo repositiries.UrlRepository, generator AliasGenerator, logger *slog.Logger) UrlService {
-	return &urlService{repo: repo, generator: generator, log: logger}
+func NewUrlService(
+	repo repositiries.UrlRepository,
+	generator AliasGenerator,
+	logger *slog.Logger,
+	baseUrl string,
+) UrlService {
+	return &urlService{
+		repo:      repo,
+		generator: generator,
+		log:       logger,
+		baseUrl:   baseUrl,
+	}
 }
 
-func (s *urlService) Save(ctx context.Context, urlToSave string, alias string) error {
+func (s *urlService) Save(ctx context.Context, urlToSave, alias string) error {
 	if alias != "" {
-		err := s.repo.Save(ctx, urlToSave, alias)
+		shortUrl := s.BuildShortUrl(s.baseUrl, alias)
+		err := s.repo.Save(ctx, urlToSave, shortUrl)
 		if err != nil {
 			s.log.Error(
 				"failed to save url", slog.String("url", urlToSave),
@@ -41,7 +55,8 @@ func (s *urlService) Save(ctx context.Context, urlToSave string, alias string) e
 
 	for i := 0; i < 5; i++ {
 		alias = s.generator.Generate()
-		err := s.repo.Save(ctx, urlToSave, alias)
+		shortUrl := s.BuildShortUrl(s.baseUrl, alias)
+		err := s.repo.Save(ctx, urlToSave, shortUrl)
 		if err == nil {
 			break
 		}
@@ -76,4 +91,27 @@ func (s *urlService) Get(ctx context.Context, id int) (url.Url, error) {
 	}
 
 	return u, nil
+}
+
+func (s *urlService) BuildShortUrl(baseUrl, code string) string {
+	baseUrl = strings.TrimRight(baseUrl, "/")
+	return baseUrl + "/" + code
+}
+
+func (s *urlService) Update(ctx context.Context, id int, newUrl, alias string) error {
+	var shortUrl string
+	if alias != "" {
+		shortUrl = s.BuildShortUrl(s.baseUrl, alias)
+	}
+
+	err := s.repo.Update(ctx, id, newUrl, shortUrl)
+	if err != nil {
+		s.log.Error(
+			"failed to update url", slog.String("url", newUrl),
+			slog.String("alias", alias),
+		)
+		return err
+	}
+
+	return nil
 }

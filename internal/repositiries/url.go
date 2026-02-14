@@ -9,9 +9,10 @@ import (
 )
 
 type UrlRepository interface {
-	Save(ctx context.Context, urlToSave string, alias string) error
+	Save(ctx context.Context, urlToSave, alias string) error
 	List(ctx context.Context) ([]url.Url, error)
 	Get(ctx context.Context, id int) (url.Url, error)
+	Update(ctx context.Context, id int, newUrl, alias string) error
 }
 
 type urlRepository struct {
@@ -22,7 +23,7 @@ func NewUrlRepository(pool *pgxpool.Pool) UrlRepository {
 	return &urlRepository{pool: pool}
 }
 
-func (r *urlRepository) Save(ctx context.Context, urlToSave string, alias string) error {
+func (r *urlRepository) Save(ctx context.Context, urlToSave, alias string) error {
 	sql, args, err := sq.
 		Insert("url").Columns("original_url", "alias").
 		Values(urlToSave, alias).PlaceholderFormat(sq.Dollar).ToSql()
@@ -86,4 +87,22 @@ func (r *urlRepository) Get(ctx context.Context, id int) (url.Url, error) {
 	}
 
 	return u, nil
+}
+
+func (r *urlRepository) Update(ctx context.Context, id int, newUrl, alias string) error {
+	builder := sq.Update("url").Set("original_url", newUrl)
+	if alias != "" {
+		builder = builder.Set("alias", alias)
+	}
+	sql, args, err := builder.Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

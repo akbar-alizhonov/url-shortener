@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"awesomeProject/internal/domain/url"
+	"awesomeProject/internal/http/schemes"
 	"awesomeProject/internal/service"
 	"errors"
 	"net/http"
@@ -13,28 +14,17 @@ type UrlHandler struct {
 	serv service.UrlService
 }
 
-type urlSaveRequest struct {
-	Url   string `json:"url"`
-	Alias string `json:"alias"`
-}
-
-type listUrlsResponse struct {
-	Id          int    `json:"id"`
-	OriginalUrl string `json:"original_url"`
-	Alias       string `json:"alias"`
-}
-
 func NewUrlHandler(serv service.UrlService) *UrlHandler {
 	return &UrlHandler{serv: serv}
 }
 
 func (h *UrlHandler) SaveUrl(c *echo.Context) error {
-	var req urlSaveRequest
+	var req schemes.UrlCreateSchema
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	err := h.serv.Save(c.Request().Context(), req.Url, req.Alias)
+	err := h.serv.Save(c.Request().Context(), req.OriginalUrl, req.Alias)
 	if err != nil {
 		switch {
 		case errors.Is(err, url.ErrAliasTaken):
@@ -56,12 +46,14 @@ func (h *UrlHandler) ListUrls(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	resp := make([]listUrlsResponse, len(urls))
+	resp := make([]schemes.UrlGetSchema, len(urls))
 	for idx, u := range urls {
-		resp[idx] = listUrlsResponse{
-			Id:          u.Id,
-			OriginalUrl: u.OriginalUrl,
-			Alias:       u.Alias,
+		resp[idx] = schemes.UrlGetSchema{
+			Id: u.Id,
+			UrlBaseSchema: schemes.UrlBaseSchema{
+				OriginalUrl: u.OriginalUrl,
+				Alias:       u.Alias,
+			},
 		}
 	}
 
@@ -80,4 +72,18 @@ func (h *UrlHandler) Redirect(c *echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusFound, u.OriginalUrl)
+}
+
+func (h *UrlHandler) Update(c *echo.Context) error {
+	var req schemes.UrlUpdateSchema
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	err := h.serv.Update(c.Request().Context(), req.Id, req.NewUrl, req.Alias)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"awesomeProject/pkg/postgres"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -28,7 +29,7 @@ func MustLoad() *Config {
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("config file does not exist: %s", configPath)
+		log.Fatalf("configs file does not exist: %s", configPath)
 	}
 
 	var cfg Config
@@ -36,4 +37,8 @@ func MustLoad() *Config {
 		log.Fatal(err)
 	}
 	return &cfg
+}
+
+func (c *HTTPServer) BaseUrl() string {
+	return fmt.Sprintf("http://%s:%d", c.Host, c.Port)
 }

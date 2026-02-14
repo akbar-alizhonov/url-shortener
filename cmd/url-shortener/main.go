@@ -27,7 +27,7 @@ func main() {
 
 	repo := repositiries.NewUrlRepository(pool)
 	generator := service.NewAliasGenerator()
-	serv := service.NewUrlService(repo, generator, log)
+	serv := service.NewUrlService(repo, generator, log, cfg.BaseUrl())
 	urlHandler := handlers.NewUrlHandler(serv)
 
 	_, cancel := context.WithCancel(context.Background())
@@ -44,6 +44,7 @@ func main() {
 	e.POST("/url", urlHandler.SaveUrl)
 	e.GET("/list", urlHandler.ListUrls)
 	e.GET("/url/:id", urlHandler.Redirect)
+	e.PUT("/url", urlHandler.Update)
 
 	if err = e.Start(":8080"); err != nil {
 		log.Error("failed to start server", err)
