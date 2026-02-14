@@ -87,3 +87,13 @@ func (h *UrlHandler) Update(c *echo.Context) error {
 
 	return c.NoContent(http.StatusNoContent)
 }
+
+func (h *UrlHandler) Delete(c *echo.Context) error {
+	id, err := echo.PathParam[int](c, "id")
+	err = h.serv.Delete(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}

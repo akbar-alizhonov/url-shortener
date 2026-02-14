@@ -13,6 +13,7 @@ type UrlRepository interface {
 	List(ctx context.Context) ([]url.Url, error)
 	Get(ctx context.Context, id int) (url.Url, error)
 	Update(ctx context.Context, id int, newUrl, alias string) error
+	Delete(ctx context.Context, id int) error
 }
 
 type urlRepository struct {
@@ -95,6 +96,22 @@ func (r *urlRepository) Update(ctx context.Context, id int, newUrl, alias string
 		builder = builder.Set("alias", alias)
 	}
 	sql, args, err := builder.Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *urlRepository) Delete(ctx context.Context, id int) error {
+	sql, args, err := sq.
+		Delete("url").Where(sq.Eq{"id": id}).
+		PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		return err
 	}

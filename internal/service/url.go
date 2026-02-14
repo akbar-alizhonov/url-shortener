@@ -15,6 +15,7 @@ type UrlService interface {
 	List(ctx context.Context) ([]url.Url, error)
 	Get(ctx context.Context, id int) (url.Url, error)
 	Update(ctx context.Context, id int, newUrl, alias string) error
+	Delete(ctx context.Context, id int) error
 }
 
 type urlService struct {
@@ -39,15 +40,19 @@ func NewUrlService(
 }
 
 func (s *urlService) Save(ctx context.Context, urlToSave, alias string) error {
+	log := s.log.With(
+		slog.String("url", urlToSave),
+		slog.String("alias", alias),
+		slog.String("request_id", logger.RequestIDFromContext(ctx)),
+	)
+
 	if alias != "" {
 		shortUrl := s.BuildShortUrl(s.baseUrl, alias)
 		err := s.repo.Save(ctx, urlToSave, shortUrl)
 		if err != nil {
-			s.log.Error(
-				"failed to save url", slog.String("url", urlToSave),
-				slog.String("alias", alias),
+			log.Error(
+				"failed to save url",
 				slog.String("err", err.Error()),
-				slog.String("request_id", logger.RequestIDFromContext(ctx)),
 			)
 			return err
 		}
@@ -63,11 +68,9 @@ func (s *urlService) Save(ctx context.Context, urlToSave, alias string) error {
 		if errors.Is(err, url.ErrAliasTaken) {
 			continue
 		}
-		s.log.Error(
-			"failed to save url", urlToSave,
-			slog.String("alias", alias),
+		log.Error(
+			"failed to save url",
 			slog.String("err", err.Error()),
-			slog.String("request_id", logger.RequestIDFromContext(ctx)),
 		)
 		return err
 	}
@@ -110,6 +113,15 @@ func (s *urlService) Update(ctx context.Context, id int, newUrl, alias string) e
 			"failed to update url", slog.String("url", newUrl),
 			slog.String("alias", alias),
 		)
+		return err
+	}
+
+	return nil
+}
+
+func (s *urlService) Delete(ctx context.Context, id int) error {
+	err := s.repo.Delete(ctx, id)
+	if err != nil {
 		return err
 	}
 

@@ -45,6 +45,7 @@ func main() {
 	e.GET("/list", urlHandler.ListUrls)
 	e.GET("/url/:id", urlHandler.Redirect)
 	e.PUT("/url", urlHandler.Update)
+	e.DELETE("/url/:id", urlHandler.Delete)
 
 	if err = e.Start(":8080"); err != nil {
 		log.Error("failed to start server", err)
