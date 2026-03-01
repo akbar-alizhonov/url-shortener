@@ -56,6 +56,7 @@ func (s *urlService) Save(ctx context.Context, urlToSave, alias string) error {
 			)
 			return err
 		}
+		return nil
 	}
 
 	for i := 0; i < 5; i++ {
